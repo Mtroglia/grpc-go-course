@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package calculator;
+
+option go_package="./calculator/calcpb";
+
+message Summing {
+    int32 numOne=1;
+    int32 numTwo=2;
+
+}
+
+message SummingRequest{
+    Summing summing =1;
+}
+
+message SummingResponse{
+    int32 result=1;
+
+}
+
+message PrimeNumberDecompositionRequest{
+    int64  number=1;
+}
+
+message PrimeNumberDecompositionResponse{
+    int64 prime_factor=1;
+
+}
+
+message ComputeAverageRequest{
+    int32 values=1;
+}
+
+message ComputeAverageResponse{
+    float average =1;
+}
+message FindMaxRequest{
+    int32 number=1;
+}
+
+message FindMaxResponse{
+    int32 max_val=1;
+}
+
+message SquareRootRequest{
+    int32 number = 1;
+    }
+message SquareRootResponse{
+    double number_root =1;
+}
+
+service CalculatorService{
+    //Unary api for summing two integers
+    rpc Sum(SummingRequest) returns(SummingResponse){};
+
+    // Unary api, this rpc will throw excepetion for negative numbers
+    // THe error will be sent is of type INVALID_ARGUEMENT
+    rpc SquareRoot(SquareRootRequest) returns(SquareRootResponse){};
+
+    //streaming server to client api for prime number decomp
+    rpc PrimeNumberDecomposition(PrimeNumberDecompositionRequest) returns(stream PrimeNumberDecompositionResponse){};
+
+    //streaming client to server  for avg computation
+    rpc ComputeAverage( stream ComputeAverageRequest) returns(ComputeAverageResponse){};
+
+    // Bidirectional Streaming. Server returns Maximum from values received from clients
+    rpc FindMax(stream FindMaxRequest) returns (stream FindMaxResponse){};
+}
+
