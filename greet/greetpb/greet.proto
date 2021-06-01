@@ -45,11 +45,22 @@ message GreetEveroneResponse{
     string result =1;
 }
 
+message GreetWithDeadlineRequest{
+    Greeting greeting=1;
+}
+message GreetWithDeadlineResponse{
+    string result =1;
+}
+
 service GreetService{
     //Unary api
     //takes input GreetRequest and outputs GreetResponse
     //keep the rpc format "Something(SomethingRequest) returns (SomethingResponse)"
     rpc Greet(GreetRequest) returns(GreetResponse){}; 
+
+    // UnaryAPI with a DEADLINE 
+    //Deadlines of 1000ms and 3000ms
+    rpc GreetWithDeadline(GreetWithDeadlineRequest) returns(GreetWithDeadlineResponse){}; 
 
     // Server Streaming RPC
     rpc GreetManyTimes(GreetManyTimesRequest) returns(stream GreetManyTimesResponse){};

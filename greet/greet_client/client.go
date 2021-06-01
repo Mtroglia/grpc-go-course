@@ -9,12 +9,29 @@ import (
 
 	"github.com/mtroglia/grpc-go-course/greet/greetpb"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/status"
 )
 
 func main() {
 	//THis is creating the client on the port 50051
 	fmt.Println("Hello Im a client")
-	conn_c, err := grpc.Dial("localhost:50051", grpc.WithInsecure())
+
+	// gRPC ssl
+	//https://grpc.io/docs/guides/auth/
+	tls := false
+	opts := grpc.WithInsecure()
+	if tls {
+		certFile := "ssl/ca.crt" //certificate authority trust certificate
+		creds, sslErr := credentials.NewClientTLSFromFile(certFile, "")
+		if sslErr != nil {
+			log.Fatal("Error while loading CA trust certificate %v ", sslErr)
+		}
+		opts = grpc.WithTransportCredentials(creds)
+	}
+
+	conn_c, err := grpc.Dial("localhost:50051", opts)
 	if err != nil {
 		log.Fatalf("cound not connect %v", err)
 	}
@@ -26,7 +43,7 @@ func main() {
 	//fmt.Printf("created client %f", c)
 
 	//This fucntion will run the Unary Greet API
-	//doUnary(c)
+	doUnary(c)
 
 	// client to request streaming
 	//doServerStreaming(c)
@@ -35,7 +52,10 @@ func main() {
 	//doClientStreaming(c)
 
 	// Bidirectional Streaming
-	doBidirectional(c)
+	//doBidirectional(c)
+	// Unary rpc with DEADLINE
+	//doUnaryWithDeadline(c, 5*time.Second) // should complete
+	//doUnaryWithDeadline(c, 1*time.Second) // Should not complete,
 
 }
 
@@ -211,5 +231,45 @@ func doUnary(c greetpb.GreetServiceClient) {
 	}
 
 	log.Printf("Response from Greet::: %v ", res.Result)
+
+}
+
+func doUnaryWithDeadline(c greetpb.GreetServiceClient, timeout time.Duration) {
+	fmt.Println("Starting to do a UnaryWithDeadline RPC")
+
+	//for the context, we can use context.Background(). We need to create the *GreetRequest object...
+	//constist of a greeting with FirstName and LN
+	req := &greetpb.GreetWithDeadlineRequest{
+		Greeting: &greetpb.Greeting{
+			FirstName: "Matt",
+			LastName:  "Trog",
+		},
+	}
+	//This will return the GreetWithDeadline Response "res" and error "err" from the server
+	// Willing to wait for 5 seconds, whenever function completes , call cancel with defer cancel
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	res, err := c.GreetWithDeadline(ctx, req)
+	if err != nil {
+
+		statusErr, ok := status.FromError(err)
+		//if okay then GRPC error.
+		if ok {
+			if statusErr.Code() == codes.DeadlineExceeded {
+				fmt.Println("timeout has been reached, Deadline was exceeded")
+			} else {
+				fmt.Printf("Unexpected error : %v \n", statusErr)
+			}
+
+		} else {
+			log.Fatalf("Error while calling GreetWithDeadline RPC: %v", err)
+		}
+		//if hit error, return from funcion, do not cannot print res.Result.
+		return
+
+	}
+
+	log.Printf("Response from GreetWithDeadline::: %v ", res.Result)
 
 }

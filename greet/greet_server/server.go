@@ -13,11 +13,42 @@ import (
 	"github.com/mtroglia/grpc-go-course/greet/greetpb"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/reflection"
+	"google.golang.org/grpc/status"
 )
 
 //This is the server object. Add services for the implementation type
 type server struct {
 	greetpb.UnimplementedGreetServiceServer
+}
+
+//implement the interface for GreetServiceServer
+//function on pointer to server
+func (*server) GreetWithDeadline(ctx context.Context, req *greetpb.GreetWithDeadlineRequest) (*greetpb.GreetWithDeadlineResponse, error) {
+	//to implement return  hello and first name
+	//the GreetWithDeadlineRequest struct "req" has a Greeting struct. Greeting struct holds first name and last name
+	fmt.Printf("GreetWithDeadline function was invoked with %v  \n", req)
+
+	for i := 0; i < 3; i++ {
+		fmt.Println("Sleeping ....")
+		if ctx.Err() == context.Canceled {
+			fmt.Println("Client canceled request")
+			return nil, status.Error(codes.Canceled, "Client canceled request ")
+		}
+		time.Sleep(1 * time.Second)
+
+	}
+	firstName := req.GetGreeting().GetFirstName()
+	//form a GreetWithDeadlineResponse
+	result := "Hello " + firstName
+	//include & to dereference the pointer to the GreetWithDeadlineResponse
+	res := &greetpb.GreetWithDeadlineResponse{
+		Result: result,
+	}
+	return res, nil
+
 }
 
 //implement the interface for GreetServiceServer
@@ -115,10 +146,34 @@ func main() {
 		log.Fatalf("Failed to listen to: %v", err)
 
 	}
+	opts := []grpc.ServerOption{}
 
-	s := grpc.NewServer()
+	// gRPC ssl
+	//https://grpc.io/docs/guides/auth/
+	tls := false
+
+	if tls {
+		certFile := "ssl/server.crt"
+		keyFile := "ssl/server.pem"
+		creds, sslErr := credentials.NewServerTLSFromFile(certFile, keyFile)
+		if sslErr != nil {
+			log.Fatalf("Failed to loading certificates to: %v", sslErr)
+			return
+		}
+		opts = append(opts, grpc.Creds(creds))
+	}
+
+	s := grpc.NewServer(opts...)
 	//greetpb is the full path of the import statement at the top of script
 	greetpb.RegisterGreetServiceServer(s, &server{})
+
+	// To use reflection service, install gRPC cleint i.e. evans
+	//https://github.com/ktr0731/evans
+	// Once installed, connect gRPC client CLI to server
+	// e.g. evans -p 50051 -r
+	// Register reflection service on gRPC server
+
+	reflection.Register(s)
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
 	}

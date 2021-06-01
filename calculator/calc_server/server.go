@@ -11,6 +11,7 @@ import (
 	"github.com/mtroglia/grpc-go-course/calculator/calcpb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 )
 
@@ -20,12 +21,13 @@ type server struct {
 }
 
 func (*server) SquareRoot(ctx context.Context, req *calcpb.SquareRootRequest) (*calcpb.SquareRootResponse, error) {
-	fmt.Printf("Received SquareRoot RPC::: %v", req)
+	fmt.Printf("Received SquareRoot RPC::: %v \n", req)
 	number := req.GetNumber()
 	if number < 0 {
+		fmt.Println("Recieved Negative number. Generating invalid argument error!!")
 		return nil, status.Errorf(
 			codes.InvalidArgument,
-			fmt.Sprintf("Oooops, Received a negative number: %v", number),
+			fmt.Sprintf("Oooops, Received a negative number: %v\n", number),
 		)
 	}
 	return &calcpb.SquareRootResponse{
@@ -149,6 +151,15 @@ func main() {
 	s := grpc.NewServer()
 	//calcpb.RegisterSummingServiceServer(s, &server{})
 	calcpb.RegisterCalculatorServiceServer(s, &server{}) //SummingServiceServer(s, &server{})
+
+	// To use reflection service, install gRPC cleint i.e. evans
+	//https://github.com/ktr0731/evans
+	// Once installed, connect gRPC client CLI to server
+	// e.g. evans -p 50051 -r
+	// Register reflection service on gRPC server
+
+	reflection.Register(s)
+
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
 	}

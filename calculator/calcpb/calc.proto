@@ -58,6 +58,8 @@ service CalculatorService{
     // THe error will be sent is of type INVALID_ARGUEMENT
     rpc SquareRoot(SquareRootRequest) returns(SquareRootResponse){};
 
+    
+
     //streaming server to client api for prime number decomp
     rpc PrimeNumberDecomposition(PrimeNumberDecompositionRequest) returns(stream PrimeNumberDecompositionResponse){};
 
